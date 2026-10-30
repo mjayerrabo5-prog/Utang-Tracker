@@ -1,0 +1,866 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>UtangTrack</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one 720px column, bottom tab bar for the five daily screens, forms open as bottom sheets. System fonts only, so nothing needs the internet. */
+:root {
+  --bg: #F1F3F5; --surface: #FFFFFF; --fg: #17212B; --muted: #55616D; --line: #D9DFE4;
+  --brand: #1D3F6E; --brand-fg: #FFFFFF;
+  --green: #0B7545; --green-bg: #DCF3E7;
+  --orange: #A85300; --orange-bg: #FFEBD1;
+  --red: #B42318; --red-bg: #FDE4E1;
+  --shade: rgba(10, 20, 30, .5);
+  --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F161C; --surface: #18222B; --fg: #EAF0F5; --muted: #9DADBA; --line: #2A3844;
+    --brand: #7FB0F0; --brand-fg: #0F161C;
+    --green: #5FD3A0; --green-bg: #12382A; --orange: #FFB35C; --orange-bg: #3D2A10; --red: #FF9A90; --red-bg: #402019;
+    --shade: rgba(0, 0, 0, .65); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F161C; --surface: #18222B; --fg: #EAF0F5; --muted: #9DADBA; --line: #2A3844;
+  --brand: #7FB0F0; --brand-fg: #0F161C;
+  --green: #5FD3A0; --green-bg: #12382A; --orange: #FFB35C; --orange-bg: #3D2A10; --red: #FF9A90; --red-bg: #402019;
+  --shade: rgba(0, 0, 0, .65); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.45;
+  padding-block: 12px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body.modal-open { overflow: hidden; }
+.app { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+h1 { font-size: 24px; } h2 { font-size: 18px; } h3 { font-size: 16px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.brand { font-weight: 800; font-size: 26px; letter-spacing: -.01em; color: var(--brand); line-height: 1; }
+.brand small { display: block; font-weight: 500; font-size: 13px; color: var(--muted); letter-spacing: 0; margin-top: 4px; }
+.top-r { display: flex; align-items: center; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; background: var(--green-bg); color: var(--green); white-space: nowrap; }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill.off { background: var(--orange-bg); color: var(--orange); }
+.banner { border-radius: 12px; padding: 10px 14px; font-size: 14px; background: var(--orange-bg); color: var(--orange); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.banner.bad { background: var(--red-bg); color: var(--red); }
+.banner.info { background: var(--surface); color: var(--muted); border: 1.5px solid var(--line); }
+.banner button { border: 1.5px solid currentColor; background: transparent; color: inherit; border-radius: 8px; padding: 6px 12px; min-height: 36px; font-size: 14px; }
+.ph { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.btn { min-height: 48px; padding: 8px 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 600; }
+.btn.primary { background: var(--brand); color: var(--brand-fg); border-color: var(--brand); }
+.btn.green { background: var(--green-bg); color: var(--green); border-color: var(--green); }
+.btn.red { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.btn.solid-red { background: var(--red); color: var(--surface); border-color: var(--red); }
+.btn.sm { min-height: 40px; padding: 4px 12px; font-size: 14px; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--brand); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-row > .btn { flex: 1 1 auto; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat .l { font-size: 13px; color: var(--muted); }
+.stat .v { font-size: 26px; font-weight: 800; line-height: 1.1; overflow-wrap: anywhere; }
+.stat .s { font-size: 13px; color: var(--muted); }
+.stat.wide { grid-column: 1 / -1; }
+.v.red { color: var(--red); } .v.green { color: var(--green); } .v.orange { color: var(--orange); }
+.card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sec { display: flex; flex-direction: column; gap: 8px; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.list { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 12px 14px; min-height: 60px; }
+.row:last-child { border-bottom: 0; }
+button.row:hover { background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.row .a { font-weight: 600; overflow-wrap: anywhere; }
+.row .b { font-weight: 800; font-size: 18px; text-align: right; }
+.row .c { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.empty { padding: 22px 14px; text-align: center; color: var(--muted); }
+.badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.b-paid { background: var(--green-bg); color: var(--green); }
+.b-overdue { background: var(--red-bg); color: var(--red); }
+.b-today { background: var(--orange); color: var(--surface); }
+.b-upcoming { background: var(--orange-bg); color: var(--orange); }
+.b-part { background: var(--line); color: var(--fg); }
+.b-demo { background: var(--line); color: var(--muted); }
+input[type="text"], input[type="search"], input[type="date"], select, textarea {
+  width: 100%; min-height: 48px; padding: 9px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg);
+}
+textarea { min-height: 84px; resize: vertical; }
+input::placeholder, textarea::placeholder { color: var(--muted); }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field > label, .lbl { font-size: 14px; color: var(--muted); font-weight: 600; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; min-height: 42px; padding: 4px 14px; font-size: 14px; font-weight: 600; }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-fg); }
+.chip .n { opacity: .75; margin-left: 4px; }
+.dcard { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.dcard .hd { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.dcard .nm { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.dcard .items { font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kv div { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
+.kv b { font-size: 16px; color: var(--fg); }
+.kv b.red { color: var(--red); } .kv b.green { color: var(--green); }
+.tbl-wrap { overflow-x: auto; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+td.r, th.r { text-align: right; } tr:last-child td { border-bottom: 0; }
+tr[data-a] { cursor: pointer; } tr[data-a]:hover td { background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1.5px solid var(--line); z-index: 5; padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+.nav-in { max-width: 720px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.nav button { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px 6px; min-height: 58px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.nav button[aria-current="page"] { color: var(--brand); }
+.nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.overlay { position: fixed; inset: 0; background: var(--shade); z-index: 30; display: flex; align-items: flex-end; justify-content: center; }
+.overlay.confirm { z-index: 40; align-items: center; padding: 16px; }
+.sheet { background: var(--surface); width: 100%; max-width: 640px; max-height: 94%; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 18px 16px; padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; }
+.overlay.confirm .sheet { border-radius: 18px; max-width: 420px; }
+.sheet-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.x { border: 0; background: var(--bg); border-radius: 10px; width: 40px; height: 40px; font-size: 22px; line-height: 1; flex: none; }
+.irow { display: grid; grid-template-columns: minmax(0, 1fr) 64px 84px; gap: 8px; align-items: end; padding: 10px; border: 1.5px solid var(--line); border-radius: 12px; }
+.irow .full { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+.irow input { min-height: 44px; padding: 6px 8px; }
+.totalbar { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--bg); font-weight: 700; }
+.totalbar .t { font-size: 24px; font-weight: 800; }
+.ferr { color: var(--red); font-size: 14px; font-weight: 600; }
+.ferr:empty { display: none; }
+.msgbox { padding: 12px 14px; border-radius: 12px; background: var(--bg); border: 1.5px dashed var(--line); font-size: 15px; user-select: text; -webkit-user-select: text; overflow-wrap: anywhere; }
+.note { font-size: 14px; color: var(--muted); }
+.out { width: 100%; min-height: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-size: 15px; max-width: calc(100% - 32px); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50; text-align: center; }
+.toast.on { opacity: 1; }
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--brand-fg); }
+a.btn.green { color: var(--green); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+@media (max-width: 380px) { .stat .v { font-size: 22px; } .kv b { font-size: 14px; } .irow { grid-template-columns: minmax(0, 1fr) 56px 76px; } }
+</style>
+
+<div class="app">
+  <header class="top" id="top"></header>
+  <div id="banners" style="display:flex;flex-direction:column;gap:8px"></div>
+  <main id="main" style="display:flex;flex-direction:column;gap:14px"></main>
+</div>
+<nav class="nav" id="nav" aria-label="Pangunahing menu"></nav>
+<div id="modal-root"></div>
+<div id="confirm-root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "utangtrack-v1";
+  var memoryOnly = false;
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+
+  /* ---------- helpers ---------- */
+  function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function today() { return ymd(new Date()); }
+  function parseD(s) { var p = String(s).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function addDays(s, n) { var d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function diffDays(a, b) { return Math.round((parseD(a) - parseD(b)) / 864e5); }
+  function fmtD(s) { return s ? parseD(s).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"; }
+  function r2(x) { return Math.round(x * 100) / 100; }
+  function peso(n) { n = r2(n); return "₱" + n.toLocaleString("en-PH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function num(s) { s = String(s).trim().replace(/,/g, ""); if (!/^\d+(\.\d+)?$/.test(s)) return NaN; return parseFloat(s); }
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  function normPhone(p) {
+    var d = String(p || "").replace(/[\s\-().]/g, "");
+    if (/^\+639\d{9}$/.test(d)) return "0" + d.slice(3);
+    if (/^639\d{9}$/.test(d)) return "0" + d.slice(2);
+    if (/^09\d{9}$/.test(d)) return d;
+    return null;
+  }
+  function phoneShow(p) { return p ? p.slice(0, 4) + " " + p.slice(4, 7) + " " + p.slice(7) : "—"; }
+
+  /* ---------- data ---------- */
+  function demoData() {
+    var T = today(), ts = Date.now();
+    function C(id, name, phone, addr, notes) { return { id: id, name: name, phone: phone, address: addr, notes: notes, added: addDays(T, -60), demo: true }; }
+    function P(amt, daysAgo) { return { id: uid(), amt: amt, date: addDays(T, -daysAgo), note: "", ts: ts - daysAgo * 864e5 }; }
+    function D(cid, dAgo, dueOff, items, pays, notes) { return { id: uid(), cid: cid, items: items, date: addDays(T, -dAgo), due: addDays(T, dueOff), notes: notes || "", payments: pays, ts: ts - dAgo * 864e5, demo: true }; }
+    function I(n, q, p) { return { name: n, qty: q, price: p }; }
+    return {
+      customers: [
+        C("c1", "Aling Nena Santos", "09170000001", "Blk 4, Purok 2", "Suki, karaniwang nagbabayad tuwing sahod"),
+        C("c2", "Mang Berto Ramos", "09170000002", "Tapat ng kapilya", ""),
+        C("c3", "Ate Joy Mercado", "09170000003", "", "Kapitbahay sa kanto"),
+        C("c4", "Kuya Dan Villanueva", "09170000004", "", ""),
+        C("c5", "Tita Lorna Dizon", "09170000005", "Blk 7", ""),
+        C("c6", "Juan Dela Cruz", "09170000006", "", "Halimbawa mula sa research")
+      ],
+      debts: [
+        D("c6", 3, 4, [I("Bigas", 2, 25), I("Sardinas", 3, 22), I("Instant noodles", 2, 15)], []),
+        D("c1", 20, -6, [I("Bigas (kilo)", 5, 52), I("Itlog", 6, 9)], [P(100, 10)], "Magbabayad daw pagkasahod"),
+        D("c1", 2, 5, [I("Kape sachet", 10, 7), I("Asukal", 1, 78)], []),
+        D("c2", 9, 0, [I("Sardinas", 4, 22), I("Sigarilyo (stick)", 5, 10)], []),
+        D("c3", 30, -14, [I("Gatas", 3, 45), I("Sabon", 4, 18), I("De lata", 5, 24)], [P(200, 18)]),
+        D("c4", 12, -5, [I("Softdrinks", 3, 20)], [P(60, 6)]),
+        D("c5", 7, 1, [I("Mantika", 1, 95), I("Toyo", 2, 18)], []),
+        D("c5", 25, -18, [I("Bigas (kilo)", 2, 52)], [P(104, 17)])
+      ]
+    };
+  }
+  function freshDB(withDemo) {
+    var d = withDemo ? demoData() : { customers: [], debts: [] };
+    return { v: 1, store: "Aming Tindahan", customers: d.customers, debts: d.debts };
+  }
+  var db = null;
+  try { var raw = localStorage.getItem(KEY); if (raw) db = JSON.parse(raw); } catch (e) { db = null; }
+  if (!db || !Array.isArray(db.customers) || !Array.isArray(db.debts)) { db = freshDB(true); }
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); memoryOnly = false; }
+    catch (e) { memoryOnly = true; }
+  }
+  persist();
+
+  function cust(id) { return db.customers.filter(function (c) { return c.id === id; })[0]; }
+  function debt(id) { return db.debts.filter(function (d) { return d.id === id; })[0]; }
+  function debtsOf(cid) { return db.debts.filter(function (d) { return d.cid === cid; }); }
+  function totalOf(d) { return r2(d.items.reduce(function (s, i) { return s + i.qty * i.price; }, 0)); }
+  function paidOf(d) { return r2(d.payments.reduce(function (s, p) { return s + p.amt; }, 0)); }
+  function balOf(d) { return Math.max(0, r2(totalOf(d) - paidOf(d))); }
+  function statusOf(d) {
+    if (balOf(d) <= 0) return "paid";
+    var T = today();
+    if (d.due < T) return "overdue";
+    if (d.due === T) return "today";
+    return "upcoming";
+  }
+  function custBal(cid) { return r2(debtsOf(cid).reduce(function (s, d) { return s + balOf(d); }, 0)); }
+  var SL = { paid: "Bayad na", overdue: "Lampas sa Due Date", today: "Due Ngayon", upcoming: "Hindi pa Due" };
+  function badge(d) {
+    var st = statusOf(d);
+    var h = '<span class="badge b-' + st + '">' + SL[st] + "</span>";
+    if (st !== "paid" && paidOf(d) > 0) h += ' <span class="badge b-part">May hulog</span>';
+    return h;
+  }
+  function itemsText(d) { return d.items.map(function (i) { return i.qty + "× " + i.name; }).join(", "); }
+  function dueNote(d) {
+    var st = statusOf(d), n = diffDays(today(), d.due);
+    if (st === "overdue") return n + (n === 1 ? " araw" : " araw") + " nang lampas";
+    if (st === "today") return "Due ngayong araw";
+    if (st === "upcoming") return "Due sa " + fmtD(d.due);
+    return "";
+  }
+  function remindMsg(d) {
+    var c = cust(d.cid), st = statusOf(d);
+    var when = st === "overdue" ? "na dapat bayaran noong " + fmtD(d.due) : st === "today" ? "na dapat bayaran ngayong araw (" + fmtD(d.due) + ")" : "na dapat bayaran sa " + fmtD(d.due);
+    return "Hello " + c.name + "! Paalala lang po mula sa " + db.store + " na may natitira kayong utang na " + peso(balOf(d)) + " " + when + ". Kung nakapagbayad na po kayo, maaari ninyong balewalain ang mensaheng ito. Salamat po!";
+  }
+
+  /* ---------- UI state ---------- */
+  var PAGES = ["dashboard", "customers", "monitor", "history", "reports", "backup"];
+  var ui = { page: "dashboard", cid: null, cq: "", mf: "all", mq: "", mfrom: "", mto: "", hq: "", hs: "all", rf: today().slice(0, 8) + "01", rt: today(), out: "", outKind: "" };
+  var online = typeof navigator.onLine === "boolean" ? navigator.onLine : true;
+  var toastTimer = null;
+
+  function toast(msg) {
+    var el = $("#toast"); el.textContent = msg; el.classList.add("on");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("on"); }, 3200);
+  }
+  function copyText(text, okMsg, boxEl) {
+    function fallback() {
+      if (boxEl) { try { var r = document.createRange(); r.selectNodeContents(boxEl); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); if (boxEl.select) boxEl.select(); } catch (e) { /* ignore */ } }
+      toast("Hindi nakopya nang kusa. Piliin ang teksto at kopyahin.");
+    }
+    try { navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
+  }
+
+  /* ---------- icons / nav ---------- */
+  var IC = {
+    dash: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
+    people: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>',
+    cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+    list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
+    bars: '<path d="M5 20V10M12 20V4M19 20v-7"/>'
+  };
+  var NAV = [["dashboard", "Dashboard", "dash"], ["customers", "Customer", "people"], ["monitor", "Bayaran", "cal"], ["history", "Kasaysayan", "list"], ["reports", "Ulat", "bars"]];
+
+  /* ---------- rendering: shell ---------- */
+  function renderTop() {
+    $("#top").innerHTML = '<div class="brand">UtangTrack<small>Madaling Talaan, Mas Maayos na Utang.</small></div>' +
+      '<div class="top-r"><span class="pill' + (online ? "" : " off") + '" id="netpill">' + (online ? "Online" : "Offline") + '</span>' +
+      '<button class="btn sm" data-a="nav" data-v="backup">Backup</button></div>';
+  }
+  function renderBanners() {
+    var h = "";
+    if (!online) h += '<div class="banner" role="status"><span><b>Offline ka ngayon.</b> Gumagana pa rin ang lahat ng talaan sa device na ito.</span></div>';
+    if (memoryOnly) h += '<div class="banner bad"><span><b>Hindi ma-save ang data</b> sa browser na ito (posibleng private mode). Mawawala ito kapag isinara ang page. Mag-backup agad.</span><button data-a="nav" data-v="backup">Backup</button></div>';
+    var hasDemo = db.customers.some(function (c) { return c.demo; }) || db.debts.some(function (d) { return d.demo; });
+    if (hasDemo) h += '<div class="banner info"><span>Halimbawa lamang (gawa-gawang pangalan) ang mga nakikita. </span><button data-a="clearDemo">Burahin ang halimbawa</button></div>';
+    $("#banners").innerHTML = h;
+  }
+  function renderNav() {
+    $("#nav").innerHTML = '<div class="nav-in">' + NAV.map(function (n) {
+      return '<button data-a="nav" data-v="' + n[0] + '"' + (ui.page === n[0] ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24" aria-hidden="true">' + IC[n[2]] + "</svg>" + n[1] + "</button>";
+    }).join("") + "</div>";
+  }
+
+  /* ---------- rendering: shared pieces ---------- */
+  function debtCard(d, actions) {
+    var c = cust(d.cid), b = balOf(d), st = statusOf(d);
+    var h = '<article class="dcard"><div class="hd"><div><div class="nm">' + esc(c ? c.name : "(nabura na)") + '</div><div class="items">' + esc(itemsText(d)) + '</div></div><div>' + badge(d) + "</div></div>" +
+      '<div class="kv num"><div>Kabuuan<b>' + peso(totalOf(d)) + "</b></div><div>Naibayad<b class=\"green\">" + peso(paidOf(d)) + "</b></div><div>Natitira<b class=\"" + (b > 0 ? "red" : "green") + '">' + peso(b) + "</b></div></div>" +
+      '<div class="small muted">Utang: ' + fmtD(d.date) + " · Due: " + fmtD(d.due) + (st !== "paid" ? " · " + dueNote(d) : "") + "</div>";
+    if (actions) {
+      h += '<div class="btn-row">' +
+        (b > 0 ? '<button class="btn green sm" data-a="pay" data-id="' + d.id + '">Mag-record ng Bayad</button><button class="btn sm" data-a="remind" data-id="' + d.id + '">Mensahe</button>' : "") +
+        '<button class="btn sm" data-a="viewDebt" data-id="' + d.id + '">Tingnan</button></div>';
+    }
+    return h + "</article>";
+  }
+  function sortDebts(arr) { return arr.slice().sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : b.ts - a.ts; }); }
+
+  /* ---------- pages ---------- */
+  function pDashboard() {
+    var out = 0, coll = 0, owing = {}, overC = {}, todayN = 0, todayAmt = 0;
+    db.debts.forEach(function (d) {
+      var b = balOf(d), st = statusOf(d); coll += paidOf(d);
+      if (b > 0) { out += b; owing[d.cid] = 1; if (st === "overdue") overC[d.cid] = 1; if (st === "today") { todayN++; todayAmt += b; } }
+    });
+    var overN = Object.keys(overC).length;
+    var due = db.debts.filter(function (d) { var s = statusOf(d); return s === "overdue" || s === "today"; })
+      .sort(function (a, b) { return a.due < b.due ? -1 : 1; });
+    var recent = sortDebts(db.debts).slice(0, 6);
+    var h = '<div class="ph"><div><h1>Dashboard</h1><div class="small muted">' + esc(db.store) + " · " + fmtD(today()) + '</div></div><button class="btn primary" data-a="addDebt">+ Magdagdag ng Utang</button></div>' +
+      '<div class="cards num">' +
+      '<div class="stat wide"><span class="l">Kabuuang Utang na Hindi pa Bayad</span><span class="v red" id="s-out">' + peso(out) + '</span><span class="s">' + Object.keys(owing).length + " customer ang may balanse</span></div>" +
+      '<div class="stat"><span class="l">Nakolekta na</span><span class="v green" id="s-coll">' + peso(coll) + '</span><span class="s">kabuuang bayad</span></div>' +
+      '<div class="stat"><span class="l">May Balanse</span><span class="v" id="s-cust">' + Object.keys(owing).length + '</span><span class="s">customer</span></div>' +
+      '<div class="stat"><span class="l">Mga Lampas sa Due Date</span><span class="v red" id="s-over">' + overN + '</span><span class="s">account</span></div>' +
+      '<div class="stat"><span class="l">Due Ngayon</span><span class="v orange" id="s-today">' + todayN + '</span><span class="s">' + peso(todayAmt) + "</span></div></div>";
+    h += '<section class="sec"><div class="sec-h"><h2>Paalala Ngayon</h2>' + (due.length ? '<button class="btn ghost sm" data-a="goMonitor" data-v="overdue">Tingnan lahat</button>' : "") + "</div>";
+    if (!due.length) h += '<div class="list"><div class="empty">Walang due ngayon o lampas na sa due date.</div></div>';
+    else {
+      h += '<div class="list" id="due-list">' + due.slice(0, 5).map(function (d) {
+        var c = cust(d.cid);
+        return '<div class="row"><span class="a">' + esc(c.name) + '</span><span class="b num" style="color:var(--red)">' + peso(balOf(d)) + '</span><span class="c">' + badge(d) + " " + dueNote(d) +
+          '</span><span class="c" style="grid-column:1/-1;gap:8px;margin-top:6px"><button class="btn sm" data-a="remind" data-id="' + d.id + '">Mensahe</button><button class="btn green sm" data-a="pay" data-id="' + d.id + '">Bayad</button></span></div>';
+      }).join("") + "</div>";
+      if (due.length > 5) h += '<div class="small muted">at ' + (due.length - 5) + " pa. Tingnan sa pahina ng Bayaran.</div>";
+    }
+    h += "</section>";
+    h += '<section class="sec"><div class="sec-h"><h2>Kamakailang Utang</h2></div>';
+    if (!recent.length) h += '<div class="list"><div class="empty">Wala pang naitalang utang. Pindutin ang “Magdagdag ng Utang”.</div></div>';
+    else h += '<div class="list">' + recent.map(function (d) {
+      var c = cust(d.cid);
+      return '<button class="row" data-a="viewDebt" data-id="' + d.id + '"><span class="a">' + esc(c ? c.name : "") + '</span><span class="b num">' + peso(totalOf(d)) + '</span><span class="c">' + fmtD(d.date) + " · " + esc(itemsText(d)) + "</span></button>";
+    }).join("") + "</div>";
+    h += '</section><p class="note">Nakaimbak lang sa device na ito ang mga talaan at hindi awtomatikong na-ba-back up online. Mawawala ito kung masira ang device o ma-clear ang browser data. Gumawa ng backup sa pahina ng Backup.</p>';
+    return h;
+  }
+
+  function custListHTML() {
+    var q = ui.cq.trim().toLowerCase(), qd = q.replace(/\D/g, "");
+    var list = db.customers.filter(function (c) {
+      if (!q) return true;
+      return c.name.toLowerCase().indexOf(q) > -1 || (qd.length >= 3 && (c.phone || "").indexOf(qd) > -1);
+    }).sort(function (a, b) { return custBal(b.id) - custBal(a.id) || a.name.localeCompare(b.name); });
+    if (!db.customers.length) return '<div class="empty">Wala pang customer. Pindutin ang “+ Customer”.</div>';
+    if (!list.length) return '<div class="empty">Walang nahanap.</div>';
+    return list.map(function (c) {
+      var b = custBal(c.id), over = debtsOf(c.id).filter(function (d) { return statusOf(d) === "overdue"; }).length;
+      return '<button class="row" data-a="openCust" data-id="' + c.id + '"><span class="a">' + esc(c.name) + '</span><span class="b num" style="color:' + (b > 0 ? "var(--red)" : "var(--green)") + '">' + (b > 0 ? peso(b) : "Bayad na") + "</span>" +
+        '<span class="c">' + (over ? '<span class="badge b-overdue">Lampas sa Due Date</span>' : "") + (c.demo ? '<span class="badge b-demo">Halimbawa</span>' : "") + "<span>" + debtsOf(c.id).length + " utang</span></span></button>";
+    }).join("");
+  }
+  function pCustomers() {
+    return '<div class="ph"><h1>Mga Customer</h1><button class="btn primary" data-a="addCust">+ Customer</button></div>' +
+      '<input type="search" id="q-cust" placeholder="Hanapin sa pangalan o numero" aria-label="Hanapin ang customer" value="' + esc(ui.cq) + '">' +
+      '<div class="list" id="clist">' + custListHTML() + "</div>";
+  }
+  function pCustDetail() {
+    var c = cust(ui.cid); if (!c) { ui.cid = null; return pCustomers(); }
+    var ds = sortDebts(debtsOf(c.id)), b = custBal(c.id);
+    var pays = [];
+    ds.forEach(function (d) { d.payments.forEach(function (p) { pays.push({ p: p, d: d }); }); });
+    pays.sort(function (a, z) { return a.p.date < z.p.date ? 1 : a.p.date > z.p.date ? -1 : z.p.ts - a.p.ts; });
+    var h = '<div><button class="btn sm" data-a="backCust">← Bumalik</button></div>' +
+      '<div class="card"><div class="ph"><h1 style="overflow-wrap:anywhere">' + esc(c.name) + '</h1></div>' +
+      '<div class="small muted">Numero: ' + esc(phoneShow(c.phone)) + (c.address ? " · " + esc(c.address) : "") + "<br>Naidagdag noong " + fmtD(c.added) + "</div>" +
+      (c.notes ? '<div class="msgbox" style="border-style:solid">' + esc(c.notes) + "</div>" : "") +
+      '<div><div class="lbl">Kabuuang balanse</div><div class="num" style="font-size:34px;font-weight:800;color:' + (b > 0 ? "var(--red)" : "var(--green)") + '">' + (b > 0 ? peso(b) : "Bayad na") + "</div></div>" +
+      '<div class="btn-row"><button class="btn primary" data-a="addDebt" data-id="' + c.id + '">+ Magdagdag ng Utang</button>' +
+      (b > 0 ? '<button class="btn green" data-a="payCust" data-id="' + c.id + '">Mag-record ng Bayad</button>' : "") + "</div>" +
+      '<div class="btn-row"><button class="btn sm" data-a="editCust" data-id="' + c.id + '">I-edit</button><button class="btn red sm" data-a="delCust" data-id="' + c.id + '">Burahin</button></div></div>';
+    h += '<section class="sec"><h2>Mga Utang</h2>' + (ds.length ? ds.map(function (d) { return debtCard(d, true); }).join("") : '<div class="list"><div class="empty">Wala pang utang.</div></div>') + "</section>";
+    h += '<section class="sec"><h2>Kasaysayan ng Bayad</h2>' + (pays.length ? '<div class="list">' + pays.map(function (x) {
+      return '<div class="row"><span class="a">' + fmtD(x.p.date) + '</span><span class="b num" style="color:var(--green)">' + peso(x.p.amt) + '</span><span class="c">Para sa utang noong ' + fmtD(x.d.date) + (x.p.note ? " · " + esc(x.p.note) : "") + "</span></div>";
+    }).join("") + "</div>" : '<div class="list"><div class="empty">Wala pang bayad na naitala.</div></div>') + "</section>";
+    return h;
+  }
+
+  var FILTERS = [["all", "Lahat"], ["upcoming", "Hindi pa Due"], ["today", "Due Ngayon"], ["overdue", "Lampas sa Due Date"], ["partial", "May Hulog"], ["paid", "Bayad na"]];
+  function fMatch(d, f) {
+    var st = statusOf(d);
+    if (f === "all") return true;
+    if (f === "partial") return paidOf(d) > 0 && balOf(d) > 0;
+    return st === f;
+  }
+  function monitorFiltered() {
+    var q = ui.mq.trim().toLowerCase();
+    return sortDebts(db.debts).filter(function (d) {
+      var c = cust(d.cid);
+      if (!fMatch(d, ui.mf)) return false;
+      if (q && (!c || c.name.toLowerCase().indexOf(q) < 0)) return false;
+      if (ui.mfrom && d.date < ui.mfrom) return false;
+      if (ui.mto && d.date > ui.mto) return false;
+      return true;
+    });
+  }
+  function monitorListHTML() {
+    var list = monitorFiltered();
+    if (!list.length) return '<div class="list"><div class="empty">Walang utang na tugma sa napili.</div></div>';
+    return list.map(function (d) { return debtCard(d, true); }).join("");
+  }
+  function pMonitor() {
+    var chips = FILTERS.map(function (f) {
+      var n = db.debts.filter(function (d) { return fMatch(d, f[0]); }).length;
+      return '<button class="chip" data-a="filter" data-v="' + f[0] + '" aria-pressed="' + (ui.mf === f[0]) + '">' + f[1] + '<span class="n">' + n + "</span></button>";
+    }).join("");
+    var follow = {};
+    db.debts.forEach(function (d) {
+      var s = statusOf(d); if (s !== "overdue" && s !== "today") return;
+      var f = follow[d.cid] || (follow[d.cid] = { amt: 0, over: 0 }); f.amt += balOf(d); if (s === "overdue") f.over++;
+    });
+    var fk = Object.keys(follow);
+    var h = '<div class="ph"><h1>Petsa ng Bayaran</h1><button class="btn primary" data-a="addDebt">+ Utang</button></div>';
+    h += '<section class="card"><h3>Kailangang i-follow up</h3>' + (fk.length ? fk.map(function (cid) {
+      var c = cust(cid), f = follow[cid];
+      return '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><button class="btn ghost sm" data-a="openCust" data-id="' + cid + '" style="text-align:left;overflow-wrap:anywhere">' + esc(c.name) + '</button><b class="num" style="color:var(--red)">' + peso(f.amt) + "</b></div>";
+    }).join("") : '<div class="note">Wala sa ngayon. Magaling!</div>') + "</section>";
+    h += '<div class="chips" role="group" aria-label="Salain ayon sa status">' + chips + "</div>" +
+      '<input type="search" id="q-mon" placeholder="Hanapin ang pangalan ng customer" aria-label="Hanapin ang customer" value="' + esc(ui.mq) + '">' +
+      '<div class="two"><div class="field"><label for="mon-from">Petsa mula</label><input type="date" id="mon-from" value="' + esc(ui.mfrom) + '"></div><div class="field"><label for="mon-to">hanggang</label><input type="date" id="mon-to" value="' + esc(ui.mto) + '"></div></div>' +
+      '<div class="sec" id="mlist">' + monitorListHTML() + "</div>";
+    return h;
+  }
+
+  function historyRows() {
+    var q = ui.hq.trim().toLowerCase();
+    return sortDebts(db.debts).filter(function (d) {
+      var c = cust(d.cid);
+      if (q && (!c || c.name.toLowerCase().indexOf(q) < 0)) return false;
+      return fMatch(d, ui.hs);
+    });
+  }
+  function historyTable() {
+    var rows = historyRows();
+    if (!rows.length) return '<div class="empty">Walang transaksyon na tugma.</div>';
+    return '<div class="tbl-wrap"><table><thead><tr><th>Customer</th><th>Produkto</th><th class="r">Kabuuan</th><th class="r">Bayad</th><th class="r">Natitira</th><th>Petsa</th><th>Due</th><th>Status</th></tr></thead><tbody>' +
+      rows.map(function (d) {
+        var c = cust(d.cid);
+        return '<tr data-a="viewDebt" data-id="' + d.id + '"><td><b>' + esc(c ? c.name : "") + "</b></td><td>" + esc(itemsText(d)) + '</td><td class="r num">' + peso(totalOf(d)) + '</td><td class="r num">' + peso(paidOf(d)) + '</td><td class="r num"><b>' + peso(balOf(d)) + "</b></td><td>" + fmtD(d.date) + "</td><td>" + fmtD(d.due) + "</td><td>" + badge(d) + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+  }
+  function pHistory() {
+    return '<div class="ph"><h1>Kasaysayan ng Transaksyon</h1></div>' +
+      '<div class="two"><input type="search" id="q-his" placeholder="Hanapin ang customer" aria-label="Hanapin ang customer" value="' + esc(ui.hq) + '">' +
+      '<select id="his-st" aria-label="Status">' + FILTERS.map(function (f) { return '<option value="' + f[0] + '"' + (ui.hs === f[0] ? " selected" : "") + ">" + f[1] + "</option>"; }).join("") + "</select></div>" +
+      '<div id="htable">' + historyTable() + '</div><p class="note">Pindutin ang isang hanay para makita ang buong detalye.</p>';
+  }
+
+  function reportData() {
+    var out = 0, over = 0, fully = [], collected = 0, bal = [];
+    db.debts.forEach(function (d) {
+      var b = balOf(d); out += b; if (statusOf(d) === "overdue") over += b; if (b <= 0) fully.push(d);
+      d.payments.forEach(function (p) { if (p.date >= ui.rf && p.date <= ui.rt) collected += p.amt; });
+    });
+    db.customers.forEach(function (c) { var b = custBal(c.id); if (b > 0) bal.push({ c: c, b: b }); });
+    bal.sort(function (a, z) { return z.b - a.b; });
+    return { out: out, over: over, fully: fully, collected: r2(collected), bal: bal };
+  }
+  function reportBody() {
+    var R = reportData();
+    var fv = R.fully.reduce(function (s, d) { return s + totalOf(d); }, 0);
+    return '<div class="cards num">' +
+      '<div class="stat"><span class="l">Kabuuang Utang</span><span class="v red">' + peso(R.out) + "</span></div>" +
+      '<div class="stat"><span class="l">Lampas sa Due Date</span><span class="v red">' + peso(R.over) + "</span></div>" +
+      '<div class="stat"><span class="l">Nakolekta sa napiling petsa</span><span class="v green" id="r-coll">' + peso(R.collected) + "</span></div>" +
+      '<div class="stat"><span class="l">Bayad na na transaksyon</span><span class="v">' + R.fully.length + '</span><span class="s">' + peso(fv) + " kabuuang halaga</span></div></div>" +
+      '<section class="sec"><div class="sec-h"><h2>Balanse ng mga Customer</h2><button class="btn sm" data-a="copyBal">Kopyahin (CSV)</button></div>' +
+      (R.bal.length ? '<div class="list">' + R.bal.map(function (x) { return '<div class="row"><span class="a">' + esc(x.c.name) + '</span><span class="b num" style="color:var(--red)">' + peso(x.b) + "</span></div>"; }).join("") + "</div>" : '<div class="list"><div class="empty">Walang may balanse.</div></div>') + "</section>";
+  }
+  function pReports() {
+    return '<div class="ph"><h1>Mga Ulat</h1></div>' +
+      '<div class="two"><div class="field"><label for="rep-from">Mula</label><input type="date" id="rep-from" value="' + esc(ui.rf) + '"></div><div class="field"><label for="rep-to">Hanggang</label><input type="date" id="rep-to" value="' + esc(ui.rt) + '"></div></div>' +
+      '<div id="rbody" style="display:flex;flex-direction:column;gap:14px">' + reportBody() + "</div>";
+  }
+
+  function pBackup() {
+    var h = '<div class="ph"><h1>Backup at Impormasyon</h1></div>';
+    h += '<section class="card"><h2>Tindahan</h2><div class="field"><label for="store-name">Pangalan ng tindahan (ginagamit sa mensahe)</label><input type="text" id="store-name" maxlength="50" value="' + esc(db.store) + '"></div></section>';
+    h += '<section class="card"><h2>Estado ng Data</h2><p class="note" style="margin:0"><b>' + (online ? "Online ngayon." : "Offline ngayon.") + "</b> Ang lahat ng talaan ay nakaimbak sa browser ng device na ito, hindi sa internet. <b>Hindi ito awtomatikong na-ba-back up.</b> Mawawala ang data kung masira o mawala ang device, o kung ma-clear ang browser data. Mag-backup nang regular.</p></section>";
+    h += '<section class="card"><h2>I-export</h2><div class="btn-row"><button class="btn primary" data-a="exp" data-v="json">Backup (JSON)</button><button class="btn" data-a="exp" data-v="csvd">CSV: Mga Utang</button><button class="btn" data-a="exp" data-v="csvp">CSV: Mga Bayad</button></div>' +
+      '<textarea class="out" id="out" readonly aria-label="Resulta ng export" placeholder="Lalabas dito ang export.">' + esc(ui.out) + "</textarea>" +
+      '<div class="btn-row"><button class="btn green" data-a="copyOut">Kopyahin</button>' + (framed ? "" : '<button class="btn" data-a="dlOut">I-download ang file</button>') + "</div>" +
+      (framed ? '<p class="note" style="margin:0">Hindi gumagana ang pag-download sa preview na ito. Kopyahin ang teksto at i-save sa Notes o i-paste sa file. Kapag binuksan ang app sa sariling browser, may Download button.</p>' : "") + "</section>";
+    h += '<section class="card"><h2>I-restore mula sa Backup</h2><p class="note" style="margin:0">I-paste ang JSON backup o pumili ng file. Papalitan nito ang lahat ng kasalukuyang talaan.</p>' +
+      '<textarea id="imp" class="out" placeholder="I-paste dito ang JSON backup" aria-label="JSON backup"></textarea><div class="field"><label for="imp-file">o pumili ng .json na file</label><input type="file" id="imp-file" accept=".json,application/json"></div>' +
+      '<div class="ferr" id="imp-err"></div><button class="btn" data-a="importGo">I-restore</button></section>';
+    h += '<section class="card"><h2>Data</h2><div class="btn-row"><button class="btn" data-a="loadDemo">Ilagay ang halimbawang data</button><button class="btn red" data-a="clearDemo">Burahin ang halimbawa</button><button class="btn solid-red" data-a="wipe">Burahin ang LAHAT</button></div></section>';
+    h += '<section class="card"><h2>Ano ang gumagana offline at ano ang hindi</h2><p class="note" style="margin:0"><b>Offline:</b> pagdagdag, pag-edit, pagtingin at pagbura ng customer, utang at bayad; mga total at due date; mga paalala sa loob ng app; mga ulat; pag-export.</p>' +
+      '<p class="note" style="margin:0"><b>Kailangan ng internet o ibang serbisyo:</b> unang pagbukas ng app (para ma-load ito), at anumang pagpapadala ng mensahe. Ang button na “Buksan ang SMS app” ay naglalagay lang ng mensahe sa SMS app ng phone; ikaw pa rin ang magpipindot ng Send. Hindi nagpapadala ang app ng text nang kusa.</p>' +
+      '<p class="note" style="margin:0"><b>Susunod na feature (wala pa):</b> awtomatikong SMS reminder. Kailangan nito ng SMS gateway service at server na may internet, o isang native Android app na may pahintulot na magpadala ng SMS.</p></section>';
+    return h;
+  }
+
+  function render() {
+    renderTop(); renderBanners(); renderNav();
+    var h;
+    switch (ui.page) {
+      case "customers": h = ui.cid ? pCustDetail() : pCustomers(); break;
+      case "monitor": h = pMonitor(); break;
+      case "history": h = pHistory(); break;
+      case "reports": h = pReports(); break;
+      case "backup": h = pBackup(); break;
+      default: h = pDashboard();
+    }
+    $("#main").innerHTML = h;
+    document.documentElement.lang = "fil";
+  }
+  function go(page) {
+    ui.page = page; if (page !== "customers") ui.cid = null;
+    try { if (location.hash !== "#" + page) location.hash = page; } catch (e) { /* ignore */ }
+    render(); window.scrollTo(0, 0);
+  }
+
+  /* ---------- modals ---------- */
+  function openModal(html, firstSel) {
+    $("#modal-root").innerHTML = '<div class="overlay" id="ov" role="dialog" aria-modal="true"><div class="sheet">' + html + "</div></div>";
+    document.body.classList.add("modal-open");
+    var f = $(firstSel || "input, select, textarea, button", $("#modal-root")); if (f) f.focus();
+  }
+  function closeModal() { $("#modal-root").innerHTML = ""; if (!$("#confirm-root").innerHTML) document.body.classList.remove("modal-open"); }
+  function confirmBox(o) {
+    $("#confirm-root").innerHTML = '<div class="overlay confirm" role="alertdialog" aria-modal="true"><div class="sheet"><h2>' + esc(o.title) + '</h2><p style="margin:0">' + esc(o.text) + '</p><div class="btn-row"><button class="btn" data-a="cfNo">Huwag ituloy</button><button class="btn solid-red" data-a="cfYes" id="cf-yes">' + esc(o.ok || "Burahin") + "</button></div></div></div>";
+    document.body.classList.add("modal-open");
+    confirmBox.cb = o.onOk; $("#cf-yes").blur(); var no = $('[data-a="cfNo"]', $("#confirm-root")); if (no) no.focus();
+  }
+  function closeConfirm() { $("#confirm-root").innerHTML = ""; if (!$("#modal-root").innerHTML) document.body.classList.remove("modal-open"); }
+  function sheetHead(title) { return '<div class="sheet-h"><h2>' + esc(title) + '</h2><button class="x" data-a="close" aria-label="Isara">×</button></div>'; }
+
+  /* customer form */
+  function openCustForm(id) {
+    var c = id ? cust(id) : { name: "", phone: "", address: "", notes: "" };
+    openModal(sheetHead(id ? "I-edit ang Customer" : "Bagong Customer") +
+      '<form id="cust-form" data-id="' + (id || "") + '" style="display:flex;flex-direction:column;gap:12px" novalidate>' +
+      '<div class="field"><label for="cf-name">Buong pangalan</label><input type="text" id="cf-name" maxlength="60" autocomplete="off" value="' + esc(c.name) + '"></div>' +
+      '<div class="field"><label for="cf-phone">Numero ng cellphone (para sa mensahe)</label><input type="text" id="cf-phone" inputmode="tel" placeholder="09XX XXX XXXX" maxlength="16" autocomplete="off" value="' + esc(c.phone ? phoneShow(c.phone) : "") + '"></div>' +
+      '<div class="field"><label for="cf-addr">Address o palatandaan (hindi kailangan)</label><input type="text" id="cf-addr" maxlength="80" value="' + esc(c.address || "") + '"></div>' +
+      '<div class="field"><label for="cf-notes">Tala tungkol sa customer</label><textarea id="cf-notes" maxlength="300">' + esc(c.notes || "") + "</textarea></div>" +
+      '<div class="ferr" id="cf-err" role="alert"></div><div class="btn-row"><button type="button" class="btn" data-a="close">Kanselahin</button><button type="submit" class="btn primary">I-save</button></div></form>', "#cf-name");
+  }
+  function validateCust(name, phoneRaw, selfId) {
+    name = name.trim();
+    if (!name) return { err: "Ilagay ang pangalan ng customer." };
+    var phone = "";
+    if (phoneRaw.trim()) { phone = normPhone(phoneRaw); if (!phone) return { err: "Hindi tama ang numero. Gamitin ang format na 09XX XXX XXXX." }; }
+    var dup = db.customers.filter(function (c) { return c.id !== selfId && (c.name.trim().toLowerCase() === name.toLowerCase() || (phone && c.phone === phone)); })[0];
+    if (dup) return { err: "Mayroon nang customer na “" + dup.name + "” na may ganitong pangalan o numero." };
+    return { name: name, phone: phone };
+  }
+  function submitCust(form) {
+    var id = form.getAttribute("data-id"), err = $("#cf-err");
+    var v = validateCust($("#cf-name").value, $("#cf-phone").value, id);
+    if (v.err) { err.textContent = v.err; return; }
+    if (id) { var c = cust(id); c.name = v.name; c.phone = v.phone; c.address = $("#cf-addr").value.trim(); c.notes = $("#cf-notes").value.trim(); }
+    else { var n = { id: uid(), name: v.name, phone: v.phone, address: $("#cf-addr").value.trim(), notes: $("#cf-notes").value.trim(), added: today() }; db.customers.push(n); ui.cid = n.id; }
+    persist(); closeModal();
+    if (!id) { ui.page = "customers"; try { location.hash = "customers"; } catch (e) { /* ignore */ } }
+    render(); toast("Nai-save ang customer.");
+  }
+
+  /* debt form */
+  function itemRowHTML(it) {
+    return '<div class="irow"><div class="field"><label>Produkto</label><input type="text" class="pn" maxlength="50" autocomplete="off" placeholder="hal. Sardinas" value="' + esc(it.name) + '"></div>' +
+      '<div class="field"><label>Dami</label><input type="text" class="pq" inputmode="decimal" placeholder="1" value="' + esc(it.qty) + '"></div>' +
+      '<div class="field"><label>Presyo ₱</label><input type="text" class="pp" inputmode="decimal" placeholder="0" value="' + esc(it.price) + '"></div>' +
+      '<div class="full"><span class="muted">Subtotal: <b class="num sub">₱0</b></span><button type="button" class="btn ghost sm" data-a="delRow">Alisin</button></div></div>';
+  }
+  function recalcDebtForm() {
+    var total = 0;
+    $$(".irow").forEach(function (r) {
+      var q = num($(".pq", r).value), p = num($(".pp", r).value), s = (isFinite(q) && isFinite(p)) ? r2(q * p) : 0;
+      $(".sub", r).textContent = peso(s); total += s;
+    });
+    $("#df-total").textContent = peso(total);
+  }
+  function openDebtForm(opts) {
+    opts = opts || {};
+    var ed = opts.debtId ? debt(opts.debtId) : null;
+    var items = ed ? ed.items : [{ name: "", qty: "", price: "" }];
+    var sel = ed ? ed.cid : (opts.cid || (db.customers.length ? "" : "__new"));
+    var custs = db.customers.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    openModal(sheetHead(ed ? "I-edit ang Utang" : "Magdagdag ng Utang") +
+      '<form id="debt-form" data-id="' + (ed ? ed.id : "") + '" style="display:flex;flex-direction:column;gap:12px" novalidate>' +
+      '<div class="field"><label for="df-cust">Customer</label><select id="df-cust"><option value="">— Pumili ng customer —</option>' +
+      custs.map(function (c) { return '<option value="' + c.id + '"' + (sel === c.id ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("") +
+      '<option value="__new"' + (sel === "__new" ? " selected" : "") + ">+ Bagong customer…</option></select></div>" +
+      '<div id="df-new" class="two"' + (sel === "__new" ? "" : " hidden") + '><div class="field"><label for="df-nname">Pangalan</label><input type="text" id="df-nname" maxlength="60" autocomplete="off"></div><div class="field"><label for="df-nphone">Numero (hindi kailangan)</label><input type="text" id="df-nphone" inputmode="tel" placeholder="09XX XXX XXXX"></div></div>' +
+      '<div id="items" style="display:flex;flex-direction:column;gap:8px">' + items.map(itemRowHTML).join("") + "</div>" +
+      '<button type="button" class="btn" data-a="addRow">+ Dagdag na produkto</button>' +
+      '<div class="totalbar"><span>Kabuuang utang</span><span class="t num" id="df-total">₱0</span></div>' +
+      '<div class="two"><div class="field"><label for="df-date">Petsa ng utang</label><input type="date" id="df-date" value="' + (ed ? ed.date : today()) + '"></div><div class="field"><label for="df-due">Petsa ng Bayaran (due)</label><input type="date" id="df-due" value="' + (ed ? ed.due : addDays(today(), 7)) + '"></div></div>' +
+      '<div class="field"><label for="df-notes">Tala (hindi kailangan)</label><input type="text" id="df-notes" maxlength="120" value="' + esc(ed ? ed.notes : "") + '"></div>' +
+      '<div class="ferr" id="df-err" role="alert"></div><div class="btn-row"><button type="button" class="btn" data-a="close">Kanselahin</button><button type="submit" class="btn primary">I-save ang Utang</button></div></form>', "#df-cust");
+    recalcDebtForm();
+  }
+  function submitDebt(form) {
+    var err = $("#df-err"), id = form.getAttribute("data-id"), ed = id ? debt(id) : null;
+    function fail(m) { err.textContent = m; }
+    var cid = $("#df-cust").value, newC = null;
+    if (!cid) return fail("Pumili ng customer o magdagdag ng bago.");
+    if (cid === "__new") {
+      var v = validateCust($("#df-nname").value, $("#df-nphone").value, "");
+      if (v.err) return fail(v.err);
+      newC = v;
+    }
+    var items = [], rows = $$(".irow");
+    for (var i = 0; i < rows.length; i++) {
+      var n = $(".pn", rows[i]).value.trim(), qs = $(".pq", rows[i]).value.trim(), ps = $(".pp", rows[i]).value.trim();
+      if (!n && !qs && !ps) continue;
+      var q = num(qs), p = num(ps), lab = "Produkto #" + (i + 1) + ": ";
+      if (!n) return fail(lab + "ilagay ang pangalan ng produkto.");
+      if (!(q > 0) || q > 10000) return fail(lab + "ilagay ang tamang dami (higit sa 0).");
+      if (!(p > 0) || p > 100000) return fail(lab + "ilagay ang tamang presyo (higit sa ₱0).");
+      items.push({ name: n, qty: q, price: p });
+    }
+    if (!items.length) return fail("Magdagdag ng kahit isang produkto.");
+    var date = $("#df-date").value, due = $("#df-due").value;
+    if (!date) return fail("Ilagay ang petsa ng utang.");
+    if (!due) return fail("Ilagay ang petsa ng bayaran (due date).");
+    if (due < date) return fail("Hindi maaaring mas maaga ang due date kaysa sa petsa ng utang.");
+    var total = r2(items.reduce(function (s, x) { return s + x.qty * x.price; }, 0));
+    if (ed && total < paidOf(ed)) return fail("Mas mababa ang bagong kabuuan (" + peso(total) + ") kaysa sa naibayad na (" + peso(paidOf(ed)) + ").");
+    if (newC) { var nc = { id: uid(), name: newC.name, phone: newC.phone, address: "", notes: "", added: today() }; db.customers.push(nc); cid = nc.id; }
+    var notes = $("#df-notes").value.trim();
+    if (ed) { ed.cid = cid; ed.items = items; ed.date = date; ed.due = due; ed.notes = notes; }
+    else db.debts.push({ id: uid(), cid: cid, items: items, date: date, due: due, notes: notes, payments: [], ts: Date.now() });
+    persist(); closeModal(); render(); toast("Nai-save. Kabuuang utang: " + peso(total));
+  }
+
+  /* payment form */
+  function openPayForm(opts) {
+    var list, selId;
+    if (opts.debtId) { list = [debt(opts.debtId)]; selId = opts.debtId; }
+    else { list = debtsOf(opts.cid).filter(function (d) { return balOf(d) > 0; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; }); selId = list[0] && list[0].id; }
+    if (!list.length || !list[0]) { toast("Walang utang na may balanse."); return; }
+    var c = cust(list[0].cid);
+    var pick = list.length > 1 ? '<div class="field"><label for="pf-debt">Aling utang?</label><select id="pf-debt">' + list.map(function (d) { return '<option value="' + d.id + '">' + fmtD(d.date) + " · " + esc(itemsText(d).slice(0, 40)) + " · " + peso(balOf(d)) + "</option>"; }).join("") + "</select></div>" : '<input type="hidden" id="pf-debt" value="' + selId + '">';
+    openModal(sheetHead("Mag-record ng Bayad") + '<div><b>' + esc(c.name) + '</b></div>' +
+      '<form id="pay-form" style="display:flex;flex-direction:column;gap:12px" novalidate>' + pick +
+      '<div class="totalbar"><span>Natitirang balanse</span><span class="t num" id="pf-bal">₱0</span></div>' +
+      '<div class="field"><label for="pf-amt">Halagang natanggap (₱)</label><input type="text" id="pf-amt" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
+      '<button type="button" class="btn sm" data-a="payFull">Buong bayad</button>' +
+      '<div class="two"><div class="field"><label for="pf-date">Petsa ng bayad</label><input type="date" id="pf-date" value="' + today() + '"></div><div class="field"><label for="pf-note">Tala</label><input type="text" id="pf-note" maxlength="80"></div></div>' +
+      '<div class="ferr" id="pf-err" role="alert"></div><div class="btn-row"><button type="button" class="btn" data-a="close">Kanselahin</button><button type="submit" class="btn green">I-record ang Bayad</button></div></form>', "#pf-amt");
+    updPayBal();
+  }
+  function updPayBal() { var d = debt($("#pf-debt").value); if (d) $("#pf-bal").textContent = peso(balOf(d)); }
+  function submitPay() {
+    var d = debt($("#pf-debt").value), err = $("#pf-err");
+    function fail(m) { err.textContent = m; }
+    if (!d) return fail("Walang napiling utang.");
+    var amt = num($("#pf-amt").value), b = balOf(d), date = $("#pf-date").value;
+    if (!isFinite(amt) || amt <= 0) return fail("Maglagay ng halagang higit sa ₱0.");
+    amt = r2(amt);
+    if (amt > b) return fail("Lampas ito sa natitirang balanse na " + peso(b) + ". Ilagay ang " + peso(b) + " o mas mababa.");
+    if (!date) return fail("Ilagay ang petsa ng bayad.");
+    if (date < d.date) return fail("Hindi maaaring mas maaga ang bayad kaysa sa petsa ng utang (" + fmtD(d.date) + ").");
+    d.payments.push({ id: uid(), amt: amt, date: date, note: $("#pf-note").value.trim(), ts: Date.now() });
+    persist(); closeModal(); render();
+    var left = balOf(d); toast(left > 0 ? "Na-record ang " + peso(amt) + ". Natitira: " + peso(left) : "Na-record ang " + peso(amt) + ". Bayad na ang utang na ito.");
+  }
+
+  /* debt detail + reminder */
+  function openDebtDetail(id) {
+    var d = debt(id); if (!d) return; var c = cust(d.cid), b = balOf(d);
+    var h = sheetHead("Detalye ng Utang") + '<div><b style="font-size:18px;overflow-wrap:anywhere">' + esc(c.name) + "</b><div style=\"margin-top:4px\">" + badge(d) + "</div></div>" +
+      '<div class="tbl-wrap"><table style="min-width:0"><thead><tr><th>Produkto</th><th class="r">Dami</th><th class="r">Presyo</th><th class="r">Subtotal</th></tr></thead><tbody>' +
+      d.items.map(function (i) { return "<tr><td>" + esc(i.name) + '</td><td class="r num">' + i.qty + '</td><td class="r num">' + peso(i.price) + '</td><td class="r num">' + peso(r2(i.qty * i.price)) + "</td></tr>"; }).join("") + "</tbody></table></div>" +
+      '<div class="kv num"><div>Kabuuan<b>' + peso(totalOf(d)) + "</b></div><div>Naibayad<b class=\"green\">" + peso(paidOf(d)) + "</b></div><div>Natitira<b class=\"" + (b > 0 ? "red" : "green") + '">' + peso(b) + "</b></div></div>" +
+      '<div class="small muted">Utang: ' + fmtD(d.date) + " · Due: " + fmtD(d.due) + (d.notes ? "<br>Tala: " + esc(d.notes) : "") + "</div>" +
+      "<h3>Kasaysayan ng Bayad</h3>" + (d.payments.length ? '<div class="list">' + d.payments.slice().sort(function (a, z) { return a.date < z.date ? 1 : -1; }).map(function (p) {
+        return '<div class="row"><span class="a">' + fmtD(p.date) + '</span><span class="b num" style="color:var(--green)">' + peso(p.amt) + '</span><span class="c">' + esc(p.note || "") + '<button class="btn ghost sm" data-a="delPay" data-id="' + d.id + '" data-pid="' + p.id + '">Alisin ang bayad</button></span></div>';
+      }).join("") + "</div>" : '<div class="note">Wala pang bayad.</div>') +
+      '<div class="btn-row">' + (b > 0 ? '<button class="btn green" data-a="pay" data-id="' + d.id + '">Mag-record ng Bayad</button><button class="btn" data-a="remind" data-id="' + d.id + '">Mensahe</button>' : "") +
+      '<button class="btn" data-a="editDebt" data-id="' + d.id + '">I-edit</button><button class="btn red" data-a="delDebt" data-id="' + d.id + '">Burahin</button></div>';
+    openModal(h, ".x");
+  }
+  function openRemind(id) {
+    var d = debt(id); if (!d) return; var c = cust(d.cid), msg = remindMsg(d);
+    var href = c.phone ? "sms:" + c.phone + "?&body=" + encodeURIComponent(msg) : "";
+    openModal(sheetHead("Mensahe ng Paalala") + '<div class="small muted">Para kay <b>' + esc(c.name) + "</b> · " + (c.phone ? esc(phoneShow(c.phone)) : "walang naka-save na numero") + "</div>" +
+      '<div class="msgbox" id="msgbox">' + esc(msg) + "</div>" +
+      '<div class="btn-row"><button class="btn primary" data-a="copyMsg" data-id="' + d.id + '">Kopyahin ang mensahe</button>' +
+      (c.phone ? '<a class="btn green" href="' + esc(href) + '">Buksan ang SMS app</a>' : '<button class="btn" data-a="editCust" data-id="' + c.id + '">Magdagdag ng numero</button>') + "</div>" +
+      '<p class="note" style="margin:0"><b>Hindi awtomatikong nagpapadala ang app na ito.</b> Ilalagay lang ng “Buksan ang SMS app” ang mensahe sa SMS ng phone mo. Kailangan mo pa ring pindutin ang Send doon. Kung walang bumukas (halimbawa sa preview na ito), gamitin ang Kopyahin at i-paste sa text o Messenger.</p>', ".btn");
+  }
+
+  /* ---------- export / import ---------- */
+  function csvCell(s) { s = String(s == null ? "" : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function csvRows(rows) { return rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"); }
+  function makeExport(kind) {
+    if (kind === "json") return JSON.stringify({ app: "UtangTrack", version: 1, exportedAt: new Date().toISOString(), store: db.store, customers: db.customers, debts: db.debts }, null, 2);
+    if (kind === "csvd") {
+      var r = [["Customer", "Petsa ng Utang", "Due Date", "Produkto", "Kabuuan", "Naibayad", "Natitira", "Status", "Tala"]];
+      sortDebts(db.debts).forEach(function (d) { var c = cust(d.cid); r.push([c ? c.name : "", d.date, d.due, itemsText(d), totalOf(d), paidOf(d), balOf(d), SL[statusOf(d)], d.notes]); });
+      return csvRows(r);
+    }
+    var p = [["Customer", "Petsa ng Bayad", "Halaga", "Tala", "Petsa ng Utang"]];
+    db.debts.forEach(function (d) { var c = cust(d.cid); d.payments.forEach(function (x) { p.push([c ? c.name : "", x.date, x.amt, x.note, d.date]); }); });
+    return csvRows(p);
+  }
+  function download(name, text, mime) {
+    var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: mime })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function importText(text) {
+    var err = $("#imp-err"), o;
+    try { o = JSON.parse(text); } catch (e) { err.textContent = "Hindi valid na JSON ang inilagay."; return; }
+    if (!o || !Array.isArray(o.customers) || !Array.isArray(o.debts)) { err.textContent = "Hindi ito backup ng UtangTrack."; return; }
+    var cs = o.customers.filter(function (c) { return c && c.id && typeof c.name === "string"; }).map(function (c) { return { id: String(c.id), name: c.name, phone: normPhone(c.phone) || "", address: c.address || "", notes: c.notes || "", added: c.added || today(), demo: !!c.demo }; });
+    var ids = {}; cs.forEach(function (c) { ids[c.id] = 1; });
+    var ds = o.debts.filter(function (d) { return d && d.id && ids[d.cid] && Array.isArray(d.items) && d.date && d.due && Array.isArray(d.payments); }).map(function (d) {
+      return { id: String(d.id), cid: d.cid, items: d.items.map(function (i) { return { name: String(i.name), qty: Number(i.qty) || 0, price: Number(i.price) || 0 }; }), date: d.date, due: d.due, notes: d.notes || "", ts: d.ts || Date.now(), demo: !!d.demo,
+        payments: d.payments.map(function (p) { return { id: String(p.id || uid()), amt: Number(p.amt) || 0, date: p.date || d.date, note: p.note || "", ts: p.ts || Date.now() }; }) };
+    });
+    err.textContent = "";
+    confirmBox({ title: "I-restore ang backup?", text: "Papalitan nito ang lahat ng kasalukuyang talaan ng " + cs.length + " customer at " + ds.length + " utang mula sa backup.", ok: "I-restore", onOk: function () {
+      db = { v: 1, store: typeof o.store === "string" && o.store ? o.store : "Aming Tindahan", customers: cs, debts: ds }; persist(); ui.cid = null; render(); toast("Na-restore ang backup.");
+    } });
+  }
+
+  /* ---------- events ---------- */
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-a]"); if (!el) { if (e.target.id === "ov") closeModal(); return; }
+    var a = el.getAttribute("data-a"), v = el.getAttribute("data-v"), id = el.getAttribute("data-id");
+    switch (a) {
+      case "nav": closeModal(); go(v); break;
+      case "close": closeModal(); break;
+      case "cfNo": closeConfirm(); break;
+      case "cfYes": var cb = confirmBox.cb; closeConfirm(); if (cb) cb(); break;
+      case "addCust": openCustForm(); break;
+      case "editCust": closeModal(); openCustForm(id); break;
+      case "openCust": ui.cid = id; ui.page = "customers"; try { location.hash = "customers"; } catch (x) { /* ignore */ } render(); window.scrollTo(0, 0); break;
+      case "backCust": ui.cid = null; render(); break;
+      case "delCust":
+        var c = cust(id), n = debtsOf(id).length;
+        confirmBox({ title: "Burahin si " + c.name + "?", text: n ? "Buburahin din ang " + n + " utang at lahat ng bayad niya. Hindi na ito maibabalik." : "Hindi na ito maibabalik.", onOk: function () {
+          db.debts = db.debts.filter(function (d) { return d.cid !== id; }); db.customers = db.customers.filter(function (x) { return x.id !== id; }); ui.cid = null; persist(); render(); toast("Nabura ang customer.");
+        } }); break;
+      case "addDebt": openDebtForm({ cid: id || null }); break;
+      case "editDebt": closeModal(); openDebtForm({ debtId: id }); break;
+      case "addRow": $("#items").insertAdjacentHTML("beforeend", itemRowHTML({ name: "", qty: "", price: "" })); var rs = $$(".irow"); $(".pn", rs[rs.length - 1]).focus(); break;
+      case "delRow": var rows = $$(".irow"); if (rows.length > 1) { el.closest(".irow").remove(); recalcDebtForm(); } else toast("Kailangan ng kahit isang produkto."); break;
+      case "pay": closeModal(); openPayForm({ debtId: id }); break;
+      case "payCust": openPayForm({ cid: id }); break;
+      case "payFull": var pd = debt($("#pf-debt").value); if (pd) $("#pf-amt").value = balOf(pd); break;
+      case "viewDebt": openDebtDetail(id); break;
+      case "delDebt":
+        confirmBox({ title: "Burahin ang utang na ito?", text: "Buburahin din ang mga bayad na naitala para dito. Hindi na ito maibabalik.", onOk: function () {
+          db.debts = db.debts.filter(function (d) { return d.id !== id; }); persist(); closeModal(); render(); toast("Nabura ang utang.");
+        } }); break;
+      case "delPay":
+        var pid = el.getAttribute("data-pid");
+        confirmBox({ title: "Alisin ang bayad na ito?", text: "Babalik ang halaga sa natitirang balanse.", ok: "Alisin", onOk: function () {
+          var d = debt(id); d.payments = d.payments.filter(function (p) { return p.id !== pid; }); persist(); render(); openDebtDetail(id); toast("Naalis ang bayad.");
+        } }); break;
+      case "remind": closeModal(); openRemind(id); break;
+      case "copyMsg": var dd = debt(id); copyText(remindMsg(dd), "Nakopya ang mensahe.", $("#msgbox")); break;
+      case "filter": ui.mf = v; render(); break;
+      case "goMonitor": ui.mf = v; go("monitor"); break;
+      case "copyBal":
+        var R = reportData(); copyText(csvRows([["Customer", "Balanse"]].concat(R.bal.map(function (x) { return [x.c.name, x.b]; }))), "Nakopya ang ulat (CSV)."); break;
+      case "exp": ui.outKind = v; ui.out = makeExport(v); $("#out").value = ui.out; break;
+      case "copyOut": if (!ui.out) { toast("Pumili muna ng i-e-export."); break; } copyText(ui.out, "Nakopya.", $("#out")); break;
+      case "dlOut": if (!ui.out) { toast("Pumili muna ng i-e-export."); break; } download(ui.outKind === "json" ? "utangtrack-backup.json" : "utangtrack-" + ui.outKind + ".csv", ui.out, ui.outKind === "json" ? "application/json" : "text/csv"); break;
+      case "importGo": var t = $("#imp").value.trim(); if (!t) { $("#imp-err").textContent = "Maglagay ng JSON o pumili ng file."; break; } importText(t); break;
+      case "loadDemo":
+        confirmBox({ title: "Ilagay ang halimbawang data?", text: "Idaragdag ang gawa-gawang mga customer at utang. Hindi nito buburahin ang sarili mong data.", ok: "Ilagay", onOk: function () {
+          var d = demoData(); d.customers.forEach(function (c) { c.id = "d" + c.id; }); d.debts.forEach(function (x) { x.cid = "d" + x.cid; });
+          var have = {}; db.customers.forEach(function (c) { have[c.id] = 1; });
+          d.customers.forEach(function (c) { if (!have[c.id]) db.customers.push(c); }); d.debts.forEach(function (x) { db.debts.push(x); });
+          persist(); render(); toast("Nailagay ang halimbawang data.");
+        } }); break;
+      case "clearDemo":
+        confirmBox({ title: "Burahin ang halimbawang data?", text: "Gawa-gawang customer at utang lang ang buburahin. Mananatili ang sarili mong mga talaan.", onOk: function () {
+          var gone = {}; db.customers.forEach(function (c) { if (c.demo) gone[c.id] = 1; });
+          db.customers = db.customers.filter(function (c) { return !c.demo; }); db.debts = db.debts.filter(function (d) { return !d.demo && !gone[d.cid]; });
+          if (ui.cid && !cust(ui.cid)) ui.cid = null; persist(); render(); toast("Nabura ang halimbawa.");
+        } }); break;
+      case "wipe":
+        confirmBox({ title: "Burahin ang LAHAT ng data?", text: "Mabubura ang lahat ng customer, utang at bayad sa device na ito. Gumawa muna ng backup kung kailangan. Hindi na ito maibabalik.", ok: "Burahin lahat", onOk: function () {
+          db = freshDB(false); ui.cid = null; ui.out = ""; persist(); render(); toast("Nabura ang lahat ng data.");
+        } }); break;
+    }
+  });
+  document.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    if (f.id === "cust-form") submitCust(f);
+    else if (f.id === "debt-form") submitDebt(f);
+    else if (f.id === "pay-form") submitPay();
+  });
+  document.addEventListener("input", function (e) {
+    var t = e.target, id = t.id;
+    if (id === "q-cust") { ui.cq = t.value; $("#clist").innerHTML = custListHTML(); }
+    else if (id === "q-mon") { ui.mq = t.value; $("#mlist").innerHTML = monitorListHTML(); }
+    else if (id === "q-his") { ui.hq = t.value; $("#htable").innerHTML = historyTable(); }
+    else if (t.classList && (t.classList.contains("pq") || t.classList.contains("pp"))) recalcDebtForm();
+  });
+  document.addEventListener("change", function (e) {
+    var t = e.target, id = t.id;
+    if (id === "df-cust") { $("#df-new").hidden = t.value !== "__new"; if (t.value === "__new") $("#df-nname").focus(); }
+    else if (id === "pf-debt") updPayBal();
+    else if (id === "mon-from") { ui.mfrom = t.value; $("#mlist").innerHTML = monitorListHTML(); }
+    else if (id === "mon-to") { ui.mto = t.value; $("#mlist").innerHTML = monitorListHTML(); }
+    else if (id === "his-st") { ui.hs = t.value; $("#htable").innerHTML = historyTable(); }
+    else if (id === "rep-from" || id === "rep-to") { if (id === "rep-from") ui.rf = t.value; else ui.rt = t.value; $("#rbody").innerHTML = reportBody(); }
+    else if (id === "store-name") { var s = t.value.trim(); if (s) { db.store = s; persist(); toast("Nai-save ang pangalan ng tindahan."); } else t.value = db.store; }
+    else if (id === "imp-file") {
+      var file = t.files && t.files[0]; if (!file) return;
+      var fr = new FileReader(); fr.onload = function () { $("#imp").value = String(fr.result); }; fr.readAsText(file);
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { if ($("#confirm-root").innerHTML) closeConfirm(); else if ($("#modal-root").innerHTML) closeModal(); }
+  });
+  window.addEventListener("online", function () { online = true; renderTop(); renderBanners(); });
+  window.addEventListener("offline", function () { online = false; renderTop(); renderBanners(); });
+  window.addEventListener("hashchange", function () {
+    var p = location.hash.slice(1);
+    if (PAGES.indexOf(p) > -1 && p !== ui.page) { ui.page = p; if (p !== "customers") ui.cid = null; render(); }
+  });
+
+  /* ---------- offline support (works when hosted over https or http://localhost) ---------- */
+  try {
+    if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol) && !framed) {
+      navigator.serviceWorker.register("sw.js").catch(function () { /* not available here */ });
+    }
+  } catch (e) { /* ignore */ }
+
+  var start = location.hash.slice(1);
+  if (PAGES.indexOf(start) > -1) ui.page = start;
+  render();
+})();
+</script>
+
+</body></html>
